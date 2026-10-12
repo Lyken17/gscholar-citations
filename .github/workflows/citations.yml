@@ -5,6 +5,15 @@ on:
     # 00:17 UTC = 08:17 Asia/Shanghai, away from the busiest minute.
     - cron: "17 0 * * *"
   workflow_dispatch:
+    inputs:
+      runner:
+        description: GitHub-hosted runner to use for the fetch
+        type: choice
+        default: macos-latest
+        options:
+          - macos-latest
+          - ubuntu-latest
+          - windows-latest
 
 permissions:
   contents: write
@@ -15,8 +24,11 @@ concurrency:
 
 jobs:
   fetch-citations:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runner || 'macos-latest' }}
     timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Check out the default branch
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
