@@ -79,13 +79,17 @@ jobs:
                       proxies.append(entry["proxy"])
               except (KeyError, TypeError, ValueError):
                   continue
-          candidates = random.SystemRandom().sample(proxies, min(6, len(proxies)))
+          candidates = ["http://45.26.30.144:8888"]
 
           def check(proxy):
               try:
                   response = curl_cffi.get(PROFILE_URL, impersonate="chrome", proxy=proxy, timeout=10)
                   print(proxy, "HTTP", response.status_code)
                   if response.status_code == 200:
+                      import re
+                      print("Final URL:", response.url)
+                      print("Page title:", re.findall(r"<title>(.*?)</title>", response.text, re.S))
+                      print("Response start:", response.text[:1800])
                       return parse_total_citations(response.text)
               except Exception as error:
                   print(proxy, type(error).__name__, str(error)[:160])
