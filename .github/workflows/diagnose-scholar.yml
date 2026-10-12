@@ -47,13 +47,55 @@ jobs:
           except Exception as error:
               print("curl_cffi:", type(error).__name__, str(error))
 
-          with sync_playwright() as playwright:
-              browser = playwright.chromium.launch()
-              page = browser.new_page(locale="en-US")
-              response = page.goto(PROFILE_URL, wait_until="domcontentloaded", timeout=45000)
-              print("Chromium HTTP", response.status)
-              print("Page title:", page.title())
-              total = parse_total_citations(page.content())
-              print("Total citations:", total)
-              browser.close()
+          try:
+              with sync_playwright() as playwright:
+                  browser = playwright.chromium.launch()
+                  page = browser.new_page(locale="en-US")
+                  response = page.goto(PROFILE_URL, wait_until="domcontentloaded", timeout=45000)
+                  print("Chromium HTTP", response.status)
+                  print("Page title:", page.title())
+                  total = parse_total_citations(page.content())
+                  print("Total citations:", total)
+                  browser.close()
+                  sys.exit(0)
+          except Exception as error:
+              print("Chromium:", type(error).__name__, str(error))
+
+          import ipaddress
+          import json
+          import random
+          from urllib.parse import urlsplit
+          from urllib.request import urlopen
+          from concurrent.futures import ThreadPoolExecutor
+
+          list_url = "https://cdn.jsdelivr.net/gh/proxifly/free-proxy-list@main/proxies/countries/US/data.json"
+          with urlopen(list_url, timeout=30) as response:
+              entries = json.load(response)
+          proxies = []
+          for entry in entries:
+              try:
+                  proxy = urlsplit(entry["proxy"])
+                  if proxy.scheme == "http" and ipaddress.ip_address(proxy.hostname).is_global and 1 <= proxy.port <= 65535:
+                      proxies.append(entry["proxy"])
+              except (KeyError, TypeError, ValueError):
+                  continue
+          candidates = random.SystemRandom().sample(proxies, min(6, len(proxies)))
+
+          def check(proxy):
+              try:
+                  response = curl_cffi.get(PROFILE_URL, impersonate="chrome", proxy=proxy, timeout=10)
+                  print(proxy, "HTTP", response.status_code)
+                  if response.status_code == 200:
+                      return parse_total_citations(response.text)
+              except Exception as error:
+                  print(proxy, type(error).__name__, str(error)[:160])
+              return None
+
+          with ThreadPoolExecutor(max_workers=3) as executor:
+              counts = list(executor.map(check, candidates))
+          valid = [count for count in counts if count is not None]
+          if valid:
+              print("Total citations:", valid[0])
+              sys.exit(0)
+          sys.exit("No tested route returned a valid Scholar citation count.")
           PY
