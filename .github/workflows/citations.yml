@@ -1,0 +1,57 @@
+name: Fetch Google Scholar citations
+
+on:
+  schedule:
+    # 00:17 UTC = 08:17 Asia/Shanghai, away from the busiest minute.
+    - cron: "17 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-scholar-citations
+  cancel-in-progress: false
+
+jobs:
+  fetch-citations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the default branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Test the fetcher
+        run: python -m unittest discover -s tests -v
+
+      - name: Fetch total citations
+        run: python scripts/fetch_citations.py
+
+      - name: Show the latest count
+        run: |
+          echo '### Google Scholar citations' >> "$GITHUB_STEP_SUMMARY"
+          echo '```json' >> "$GITHUB_STEP_SUMMARY"
+          cat data/latest.json >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit citation data
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/citations.csv data/latest.json
+          if git diff --cached --quiet; then
+            echo "Citation data is already up to date."
+            exit 0
+          fi
+          git commit -m "chore: update Google Scholar citations"
+          git pull --rebase origin "$DEFAULT_BRANCH"
+          git push origin "HEAD:$DEFAULT_BRANCH"
