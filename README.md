@@ -46,4 +46,6 @@ Verification on October 12, 2026 found HTTP 403 on all three tested hosted runne
 
 Changing the runner or request headers did not resolve the live failure. Collection needs a network that Google Scholar allows, or a supported data service. The fetcher and daily schedule are implemented, but successful live retrieval and data commits remain unverified.
 
+A further anonymous Google Translate website route reached Scholar's JavaScript verification page rather than a profile. A real browser also remained at the verification page, and the CAPTCHA rejected the translated domain. This route was not added to the collector.
+
 The script retries temporary network errors, HTTP 429, and selected server errors up to three requests, with 20- and 40-second delays. A forbidden response, CAPTCHA, missing table, or invalid number makes the job fail before writing data. Existing observations are preserved and no zero is substituted for a failed fetch. Check the failed run's logs and use **Run workflow** to retry later.
