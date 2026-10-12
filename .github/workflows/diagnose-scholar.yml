@@ -89,7 +89,13 @@ jobs:
                       import re
                       print("Final URL:", response.url)
                       print("Page title:", re.findall(r"<title>(.*?)</title>", response.text, re.S))
-                      print("Response start:", response.text[:1800])
+                      visible = re.sub(r"<(script|style)\b[^>]*>.*?</\1>", "", response.text, flags=re.S | re.I)
+                      visible = re.sub(r"<[^>]+>", " ", visible)
+                      print("Page text:", " ".join(visible.split())[-4000:])
+                      from scripts.fetch_citations import CitationTableParser
+                      parser = CitationTableParser()
+                      parser.feed(response.text)
+                      print("Summary table rows:", parser.rows)
                       return parse_total_citations(response.text)
               except Exception as error:
                   print(proxy, type(error).__name__, str(error)[:160])
