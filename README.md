@@ -40,6 +40,10 @@ The profile ID and URL are defined in `scripts/fetch_citations.py`. If changing 
 
 ## Fetch failures
 
-Google Scholar may block automated requests, including requests from GitHub-hosted runners. Live verification during implementation returned HTTP 403; a successful live fetch has not yet been confirmed. Direct fetching is therefore best effort.
+Google Scholar may block automated requests, including requests from GitHub-hosted runners. **Live collection is currently blocked; no successful citation snapshot has been recorded.**
+
+Verification on October 12, 2026 found HTTP 403 on all three tested hosted runner types: [Ubuntu](https://github.com/Lyken17/gscholar-citations/actions/runs/38258976732), [macOS](https://github.com/Lyken17/gscholar-citations/actions/runs/38259662315), and [Windows](https://github.com/Lyken17/gscholar-citations/actions/runs/38262906223). Chromium and browser-compatible HTTP clients also received 403. Bounded public-proxy tests did not return a valid citation summary, and the initially reachable proxy later timed out. The temporary diagnostic workflow was removed after these tests.
+
+Changing the runner or request headers did not resolve the live failure. Collection needs a network that Google Scholar allows, or a supported data service. The fetcher and daily schedule are implemented, but successful live retrieval and data commits remain unverified.
 
 The script retries temporary network errors, HTTP 429, and selected server errors up to three requests, with 20- and 40-second delays. A forbidden response, CAPTCHA, missing table, or invalid number makes the job fail before writing data. Existing observations are preserved and no zero is substituted for a failed fetch. Check the failed run's logs and use **Run workflow** to retry later.
